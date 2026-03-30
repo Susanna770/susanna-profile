@@ -371,6 +371,96 @@ h2{font-size:32px}
   pointer-events: none;
 }
 
+/* ========= 宠物板块样式 ========= */
+.pet-container{
+  background: var(--card);
+  border-radius: 48px;
+  padding: 30px 24px 40px;
+  max-width: 700px;
+  margin: 20px auto;
+  box-shadow: 0 20px 35px rgba(0,0,0,0.1);
+}
+.pet-image-area{
+  min-height: 380px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg);
+  border-radius: 32px;
+  margin-bottom: 24px;
+  padding: 20px;
+}
+#petImg{
+  max-width: 100%;
+  max-height: 380px;
+  border-radius: 28px;
+  object-fit: contain;
+  transition: opacity 0.25s ease;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+.pet-buttons{
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 24px 0 20px;
+}
+.pet-btn{
+  background: var(--accent);
+  padding: 12px 28px;
+  border-radius: 60px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: 0.2s;
+  color: var(--text);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+.pet-btn:hover{
+  transform: scale(0.97);
+  background: var(--muted);
+  color: white;
+}
+.loading-indicator{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.2rem;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: 60px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.loading-indicator span{
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 1.2s infinite ease-in-out;
+}
+.loading-indicator span:nth-child(2){animation-delay: 0.2s;}
+.loading-indicator span:nth-child(3){animation-delay: 0.4s;}
+@keyframes pulse{
+  0%,80%,100%{transform: scale(0.6); opacity: 0.4;}
+  40%{transform: scale(1); opacity: 1;}
+}
+.error-message{
+  background: #ffdfd4;
+  color: #b13e3e;
+  padding: 12px;
+  border-radius: 60px;
+  text-align: center;
+  font-weight: 500;
+  margin-top: 16px;
+}
+@media (max-width: 600px){
+  .pet-image-area{min-height: 280px;}
+  #petImg{max-height: 280px;}
+}
+
 /* 响应式调整 */
 @media (max-width: 600px) {
   .circle {
@@ -552,7 +642,7 @@ h2{font-size:32px}
     <div class="node" style="--angle:120deg"  onclick="openSection('food',160,90)">Food</div>
     <div class="node" style="--angle:180deg"  onclick="openSection('life',0,180)">Life</div>
     <div class="node" style="--angle:240deg"  onclick="openSection('friends',-160,90)">Friends</div>
-    <div class="node" style="--angle:300deg"  onclick="openSection('contact',-160,-90)">Contact</div>
+    <div class="node" style="--angle:300deg"  onclick="openSection('pets',-160,-90)">Pets</div>
 
   </div>
 
@@ -738,14 +828,27 @@ h2{font-size:32px}
 </div>
 
 
-<!-- CONTACT -->
-<div id="contact" class="section">
-    <h2>Contact</h2>
+<!-- PETS 随机宠物图片生成器 -->
+<div id="pets" class="section">
+  <h2>🐾 萌宠治愈所 🐶🐱</h2>
   <div class="content-center fade-in">
-    <p>📧 zhusixian.razx@outlook.com</p>
+    <div class="pet-container">
+      <!-- 图片区域 -->
+      <div class="pet-image-area">
+        <img id="petImg" src="https://images.dog.ceo/breeds/shiba/shiba-2.jpg" alt="随机萌宠">
+      </div>
+      <!-- 模式切换按钮 -->
+      <div class="pet-buttons">
+        <button class="pet-btn" id="dogBtn">🐕 狗狗随机</button>
+        <button class="pet-btn" id="catBtn">🐈 猫咪随机</button>
+        <button class="pet-btn" id="randomBtn">✨ 随机派送</button>
+      </div>
+      <!-- 状态提示区 (loading/错误消息) -->
+      <div id="petStatus" style="text-align:center; min-height: 60px;"></div>
+    </div>
+    <p style="margin-top: 16px; opacity:0.7;">💡 点击换一张，每次都有新惊喜~</p>
   </div>
   <a class="back" onclick="backCircle()">← Back</a>
-  
 </div>
 
 <!-- FINAL -->
@@ -863,6 +966,133 @@ function toggleFriend(header){
   const card = header.parentElement;
   card.classList.toggle("open");
 }
+
+// ========= 随机宠物图片生成器 =========
+let currentPetMode = 'dog';
+let isLoading = false;
+const petImgEl = document.getElementById('petImg');
+const statusDivEl = document.getElementById('petStatus');
+
+function showPetLoading() {
+  isLoading = true;
+  if (statusDivEl) {
+    statusDivEl.innerHTML = `
+      <div class="loading-indicator">
+        <span></span><span></span><span></span>
+        <span style="margin-left:8px;">🐕🐱 加载萌宠中...</span>
+      </div>
+    `;
+  }
+  if (petImgEl) petImgEl.style.opacity = '0.5';
+}
+
+function hidePetLoading() {
+  isLoading = false;
+  if (petImgEl) petImgEl.style.opacity = '1';
+}
+
+function showPetError(msg) {
+  if (statusDivEl) {
+    statusDivEl.innerHTML = `<div class="error-message">⚠️ ${msg}</div>`;
+    setTimeout(() => {
+      if (statusDivEl.innerHTML.includes(msg)) {
+        if (!isLoading) statusDivEl.innerHTML = '';
+      }
+    }, 3000);
+  }
+}
+
+function clearPetStatus() {
+  if (!isLoading && statusDivEl) statusDivEl.innerHTML = '';
+}
+
+async function fetchDogImage() {
+  const res = await fetch('https://dog.ceo/api/breeds/image/random');
+  if (!res.ok) throw new Error('狗狗API休息了');
+  const data = await res.json();
+  if (data.status !== 'success') throw new Error('获取失败');
+  return data.message;
+}
+
+async function fetchCatImage() {
+  const res = await fetch('https://api.thecatapi.com/v1/images/search');
+  if (!res.ok) throw new Error('猫咪API开小差了');
+  const data = await res.json();
+  if (!data || data.length === 0) throw new Error('没有图片');
+  return data[0].url;
+}
+
+async function updatePetImage() {
+  if (isLoading) return;
+  showPetLoading();
+  try {
+    let imageUrl = '';
+    if (currentPetMode === 'dog') {
+      imageUrl = await fetchDogImage();
+    } else if (currentPetMode === 'cat') {
+      imageUrl = await fetchCatImage();
+    } else {
+      const isDog = Math.random() < 0.5;
+      imageUrl = isDog ? await fetchDogImage() : await fetchCatImage();
+    }
+    
+    if (petImgEl) {
+      petImgEl.style.opacity = '0';
+      setTimeout(() => {
+        petImgEl.src = imageUrl;
+        petImgEl.onload = () => {
+          petImgEl.style.opacity = '1';
+          hidePetLoading();
+          clearPetStatus();
+          if (statusDivEl) {
+            statusDivEl.innerHTML = `<div style="font-size:0.9rem;">✨ 治愈一刻 ✨</div>`;
+            setTimeout(() => {
+              if (statusDivEl.innerHTML.includes('治愈一刻')) statusDivEl.innerHTML = '';
+            }, 1500);
+          }
+        };
+        petImgEl.onerror = () => {
+          hidePetLoading();
+          showPetError('图片加载失败，再试一次～');
+          petImgEl.style.opacity = '1';
+        };
+      }, 100);
+    }
+  } catch (err) {
+    hidePetLoading();
+    showPetError(err.message || '网络出问题啦');
+    if (petImgEl) petImgEl.style.opacity = '1';
+  }
+}
+
+function setPetMode(mode) {
+  currentPetMode = mode;
+  updatePetImage();
+}
+
+// 在页面加载完成后绑定宠物按钮事件（放在 DOMContentLoaded 里）
+// 注意：你原来有个 DOMContentLoaded，在里面追加以下代码
+
+document.addEventListener('DOMContentLoaded', function() {
+  // 原来的代码保持不变
+  document.querySelectorAll(".section").forEach(s=>{
+    s.style.display="none";
+  });
+  
+  // ===== 追加宠物板块初始化 =====
+  const dogBtn = document.getElementById('dogBtn');
+  const catBtn = document.getElementById('catBtn');
+  const randomBtn = document.getElementById('randomBtn');
+  
+  if (dogBtn) dogBtn.addEventListener('click', () => setPetMode('dog'));
+  if (catBtn) catBtn.addEventListener('click', () => setPetMode('cat'));
+  if (randomBtn) randomBtn.addEventListener('click', () => setPetMode('random'));
+  
+  if (petImgEl) {
+    petImgEl.src = 'https://images.dog.ceo/breeds/shiba/shiba-2.jpg';
+  }
+  currentPetMode = 'dog';
+});
 
 
 
